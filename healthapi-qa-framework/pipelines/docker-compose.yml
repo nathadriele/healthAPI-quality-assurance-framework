@@ -1,0 +1,203 @@
+version: '3.8'
+
+# Health API QA Framework - Docker Compose
+# Ambiente completo para desenvolvimento e testes
+
+services:
+  # API Principal
+  healthapi:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: development
+    container_name: healthapi-qa
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://healthapi:healthapi123@postgres:5432/healthapi_db
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ../api:/app/api
+      - ../tests:/app/tests
+      - ../logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Banco de Dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: healthapi-postgres
+    environment:
+      - POSTGRES_DB=healthapi_db
+      - POSTGRES_USER=healthapi
+      - POSTGRES_PASSWORD=healthapi123
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthapi -d healthapi_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para Cache
+  redis:
+    image: redis:7-alpine
+    container_name: healthapi-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # OWASP ZAP para Testes de Segurança
+  owasp-zap:
+    image: owasp/zap2docker-stable
+    container_name: healthapi-zap
+    ports:
+      - "8080:8080"
+    command: zap-webswing.sh
+    volumes:
+      - ../tests/security/zap-reports:/zap/wrk
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+
+  # SonarQube para Análise de Código
+  sonarqube:
+    image: sonarqube:community
+    container_name: healthapi-sonar
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube_db
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar123
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    depends_on:
+      - postgres
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+
+  # Grafana para Monitoramento
+  grafana:
+    image: grafana/grafana:latest
+    container_name: healthapi-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../scripts/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ../scripts/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+
+  # Prometheus para Métricas
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: healthapi-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../scripts/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+
+  # Jaeger para Tracing Distribuído
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: healthapi-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector HTTP
+      - "14250:14250"  # Jaeger collector gRPC
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+
+  # Nginx como Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: healthapi-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../scripts/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../scripts/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - healthapi
+    networks:
+      - healthapi-network
+    restart: unless-stopped
+
+# Volumes persistentes
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  sonarqube_data:
+    driver: local
+  sonarqube_extensions:
+    driver: local
+  sonarqube_logs:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+# Rede personalizada
+networks:
+  healthapi-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

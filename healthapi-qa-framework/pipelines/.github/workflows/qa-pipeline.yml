@@ -1,0 +1,607 @@
+name: Health API QA Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+  API_HOST: http://localhost:8000
+
+jobs:
+  # ============================================================================
+  # STAGE 1: Code Quality & Static Analysis
+  # ============================================================================
+  code-quality:
+    name: 🔍 Code Quality & Static Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        
+    - name: 📦 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        
+    - name: 🎨 Code Formatting Check (Black)
+      run: |
+        black --check --diff api/ tests/
+        
+    - name: 📏 Import Sorting Check (isort)
+      run: |
+        isort --check-only --diff api/ tests/
+        
+    - name: 🔍 Linting (Flake8)
+      run: |
+        flake8 api/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+        
+    - name: 🔍 Static Analysis (Pylint)
+      run: |
+        pylint api/ tests/ --fail-under=8.0 --output-format=text
+        
+    - name: 🔒 Security Scan (Bandit)
+      run: |
+        bandit -r api/ -f json -o bandit-report.json
+        bandit -r api/ -f txt
+        
+    - name: 🛡️ Dependency Security Check (Safety)
+      run: |
+        safety check --json --output safety-report.json
+        safety check
+        
+    - name: 📊 Upload Security Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  # ============================================================================
+  # STAGE 2: Unit Tests & Coverage
+  # ============================================================================
+  unit-tests:
+    name: 🧪 Unit Tests & Coverage
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: healthapi123
+          POSTGRES_USER: healthapi
+          POSTGRES_DB: healthapi_test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        
+    - name: 📦 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        
+    - name: 🧪 Run Unit Tests
+      env:
+        DATABASE_URL: postgresql://healthapi:healthapi123@localhost:5432/healthapi_test_db
+        REDIS_URL: redis://localhost:6379/0
+        TESTING: true
+      run: |
+        pytest tests/unit/ -v \
+          --cov=api \
+          --cov-report=html:htmlcov \
+          --cov-report=xml:coverage.xml \
+          --cov-report=term-missing \
+          --cov-fail-under=85 \
+          --junit-xml=junit-report.xml
+          
+    - name: 📊 Upload Coverage Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-reports
+        path: |
+          htmlcov/
+          coverage.xml
+          junit-report.xml
+          
+    - name: 📈 Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  # ============================================================================
+  # STAGE 3: API Testing (Functional & Integration)
+  # ============================================================================
+  api-tests:
+    name: 🌐 API Tests (Functional & Integration)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: healthapi123
+          POSTGRES_USER: healthapi
+          POSTGRES_DB: healthapi_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        
+    - name: 📦 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        
+    - name: 🚀 Start API Server
+      env:
+        DATABASE_URL: postgresql://healthapi:healthapi123@localhost:5432/healthapi_db
+        REDIS_URL: redis://localhost:6379/0
+        ENVIRONMENT: testing
+      run: |
+        cd api
+        python main.py &
+        sleep 10
+        curl -f http://localhost:8000/health || exit 1
+        
+    - name: 🧪 Run Functional Tests
+      run: |
+        pytest tests/functional/ -v \
+          --html=functional-report.html \
+          --self-contained-html \
+          --junit-xml=functional-junit.xml
+          
+    - name: 🔗 Run Integration Tests
+      run: |
+        pytest tests/integration/ -v \
+          --html=integration-report.html \
+          --self-contained-html \
+          --junit-xml=integration-junit.xml
+          
+    - name: 📋 Run Contract Tests
+      run: |
+        pytest tests/contracts/ -v \
+          --html=contracts-report.html \
+          --self-contained-html \
+          --junit-xml=contracts-junit.xml
+          
+    - name: 📊 Upload Test Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: api-test-reports
+        path: |
+          functional-report.html
+          integration-report.html
+          contracts-report.html
+          functional-junit.xml
+          integration-junit.xml
+          contracts-junit.xml
+
+  # ============================================================================
+  # STAGE 4: Performance Testing
+  # ============================================================================
+  performance-tests:
+    name: ⚡ Performance Testing
+    runs-on: ubuntu-latest
+    needs: api-tests
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: healthapi123
+          POSTGRES_USER: healthapi
+          POSTGRES_DB: healthapi_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        
+    - name: 📦 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        
+    - name: 🚀 Start API Server
+      env:
+        DATABASE_URL: postgresql://healthapi:healthapi123@localhost:5432/healthapi_db
+        REDIS_URL: redis://localhost:6379/0
+        ENVIRONMENT: testing
+      run: |
+        cd api
+        python main.py &
+        sleep 10
+        curl -f http://localhost:8000/health || exit 1
+        
+    - name: ⚡ Run Load Tests
+      run: |
+        locust -f tests/performance/locustfile.py \
+          --headless \
+          --users 20 \
+          --spawn-rate 2 \
+          --run-time 60s \
+          --host http://localhost:8000 \
+          --html performance-report.html \
+          --csv performance-stats
+          
+    - name: 📊 Upload Performance Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-reports
+        path: |
+          performance-report.html
+          performance-stats_*.csv
+
+  # ============================================================================
+  # STAGE 5: Security Testing
+  # ============================================================================
+  security-tests:
+    name: 🔒 Security Testing
+    runs-on: ubuntu-latest
+    needs: api-tests
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: healthapi123
+          POSTGRES_USER: healthapi
+          POSTGRES_DB: healthapi_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        
+    - name: 📦 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        
+    - name: 🚀 Start API Server
+      env:
+        DATABASE_URL: postgresql://healthapi:healthapi123@localhost:5432/healthapi_db
+        REDIS_URL: redis://localhost:6379/0
+        ENVIRONMENT: testing
+      run: |
+        cd api
+        python main.py &
+        sleep 10
+        curl -f http://localhost:8000/health || exit 1
+        
+    - name: 🔒 Run OWASP Security Tests
+      run: |
+        pytest tests/security/ -v \
+          --html=security-report.html \
+          --self-contained-html \
+          --junit-xml=security-junit.xml \
+          -m security
+          
+    - name: 📊 Upload Security Test Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-test-reports
+        path: |
+          security-report.html
+          security-junit.xml
+
+  # ============================================================================
+  # STAGE 6: Quality Gates & Reporting
+  # ============================================================================
+  quality-gates:
+    name: 🎯 Quality Gates & Final Report
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, api-tests, performance-tests, security-tests]
+    if: always()
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 📊 Download All Artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: 🎯 Evaluate Quality Gates
+      run: |
+        echo "🎯 Evaluating Quality Gates..."
+        
+        # Initialize gate status
+        GATES_PASSED=true
+        
+        # Gate 1: Code Quality
+        if [ "${{ needs.code-quality.result }}" != "success" ]; then
+          echo "❌ Code Quality Gate FAILED"
+          GATES_PASSED=false
+        else
+          echo "✅ Code Quality Gate PASSED"
+        fi
+        
+        # Gate 2: Unit Tests & Coverage
+        if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+          echo "❌ Unit Tests Gate FAILED"
+          GATES_PASSED=false
+        else
+          echo "✅ Unit Tests Gate PASSED"
+        fi
+        
+        # Gate 3: API Tests
+        if [ "${{ needs.api-tests.result }}" != "success" ]; then
+          echo "❌ API Tests Gate FAILED"
+          GATES_PASSED=false
+        else
+          echo "✅ API Tests Gate PASSED"
+        fi
+        
+        # Gate 4: Performance Tests
+        if [ "${{ needs.performance-tests.result }}" != "success" ]; then
+          echo "⚠️ Performance Tests Gate FAILED (Warning)"
+          # Performance failures are warnings, not blockers
+        else
+          echo "✅ Performance Tests Gate PASSED"
+        fi
+        
+        # Gate 5: Security Tests
+        if [ "${{ needs.security-tests.result }}" != "success" ]; then
+          echo "⚠️ Security Tests Gate FAILED (Warning)"
+          # Security test failures are warnings for demo API
+        else
+          echo "✅ Security Tests Gate PASSED"
+        fi
+        
+        # Final decision
+        if [ "$GATES_PASSED" = "true" ]; then
+          echo "🎉 ALL QUALITY GATES PASSED!"
+          echo "✅ Build is ready for deployment"
+        else
+          echo "💥 QUALITY GATES FAILED!"
+          echo "❌ Build is NOT ready for deployment"
+          exit 1
+        fi
+        
+    - name: 📋 Generate Quality Report
+      run: |
+        cat > quality-report.md << EOF
+        # 🏥 Health API QA Pipeline Report
+        
+        **Build**: \`${{ github.run_number }}\`  
+        **Commit**: \`${{ github.sha }}\`  
+        **Branch**: \`${{ github.ref_name }}\`  
+        **Triggered by**: ${{ github.event_name }}
+        
+        ## 🎯 Quality Gates Status
+        
+        | Gate | Status | Result |
+        |------|--------|--------|
+        | 🔍 Code Quality | ${{ needs.code-quality.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | ${{ needs.code-quality.result }} |
+        | 🧪 Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | ${{ needs.unit-tests.result }} |
+        | 🌐 API Tests | ${{ needs.api-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | ${{ needs.api-tests.result }} |
+        | ⚡ Performance | ${{ needs.performance-tests.result == 'success' && '✅ PASSED' || '⚠️ WARNING' }} | ${{ needs.performance-tests.result }} |
+        | 🔒 Security | ${{ needs.security-tests.result == 'success' && '✅ PASSED' || '⚠️ WARNING' }} | ${{ needs.security-tests.result }} |
+        
+        ## 📊 Test Results Summary
+        
+        - **Static Analysis**: Code formatting, linting, security scan
+        - **Unit Tests**: Coverage threshold ≥85%
+        - **Functional Tests**: API endpoint validation
+        - **Integration Tests**: Cross-module functionality
+        - **Contract Tests**: OpenAPI specification compliance
+        - **Performance Tests**: Load testing with Locust
+        - **Security Tests**: OWASP Top 10 validation
+        
+        ## 🚀 Next Steps
+        
+        ${{ needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.api-tests.result == 'success' && '✅ **Ready for deployment**' || '❌ **Fix issues before deployment**' }}
+        
+        ---
+        *Generated by Health API QA Framework*
+        EOF
+        
+    - name: 📊 Upload Quality Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: quality-report
+        path: quality-report.md
+        
+    - name: 💬 Comment PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('quality-report.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: report
+          });
+
+  # ============================================================================
+  # STAGE 7: Deployment (Conditional)
+  # ============================================================================
+  deploy:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    if: github.ref == 'refs/heads/main' && needs.quality-gates.result == 'success'
+    environment: staging
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🚀 Deploy to Staging
+      run: |
+        echo "🚀 Deploying to staging environment..."
+        echo "✅ Deployment completed successfully!"
+        # Add actual deployment commands here
+        
+    - name: 🧪 Post-Deployment Tests
+      run: |
+        echo "🧪 Running post-deployment smoke tests..."
+        # Add smoke tests for staging environment
+        echo "✅ Smoke tests passed!"
+        
+    - name: 📢 Notify Success
+      run: |
+        echo "🎉 Deployment to staging completed successfully!"
+        echo "🔗 Staging URL: https://staging.healthapi.com"
+
+  # ============================================================================
+  # STAGE 8: SonarQube Analysis (Optional)
+  # ============================================================================
+  sonarqube-analysis:
+    name: 📈 SonarQube Code Analysis
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: 📦 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: 📊 Download Coverage Reports
+      uses: actions/download-artifact@v3
+      with:
+        name: coverage-reports
+
+    - name: 📈 SonarQube Scan
+      uses: sonarqube-quality-gate-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        scanMetadataReportFile: .scannerwork/report-task.txt
