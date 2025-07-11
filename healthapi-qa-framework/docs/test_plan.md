@@ -1,4 +1,4 @@
-# 📋 Health API QA Framework - Plano de Testes
+# Health API QA Framework - Plano de Testes
 
 **Versão**: 1.0.0  
 **Data**: Janeiro 2025  
@@ -417,9 +417,3 @@ Este documento define o plano de testes para o **Health API QA Framework**, um s
 - **Throughput**: > 1000 RPS
 - **Error Rate**: < 0.1%
 - **Availability**: > 99.9%
-
----
-
-**Documento aprovado por**: QA Engineering Team  
-**Data de aprovação**: Janeiro 2025  
-**Próxima revisão**: Março 2025
