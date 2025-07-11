@@ -1,14 +1,12 @@
 # Health API QA Framework
 
-[![CI/CD Pipeline](https://github.com/your-org/healthapi-qa-framework/workflows/QA%20Pipeline/badge.svg)](https://github.com/your-org/healthapi-qa-framework/actions)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=healthapi-qa-framework&metric=alert_status)](https://sonarcloud.io/dashboard?id=healthapi-qa-framework)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=healthapi-qa-framework&metric=coverage)](https://sonarcloud.io/dashboard?id=healthapi-qa-framework)
+<img width="1890" height="904" alt="Captura de tela 2025-07-09 190022" src="https://github.com/user-attachments/assets/df4b2c5b-1d8d-4595-8e81-059a01c3ac83" />
 
-## 🎯 Visão Geral
+##  Visão Geral
 
 Framework de QA abrangente para APIs de saúde, seguindo padrões internacionais **ISTQB**, **ISO/IEC 29119** e **OWASP**. Implementa estratégia de **Shift-Left Testing** com automação completa em pipeline CI/CD.
 
-### 🏗️ Arquitetura de Testes
+### Arquitetura de Testes
 
 ```
 healthapi-qa-framework/
@@ -24,7 +22,7 @@ healthapi-qa-framework/
 └── docs/                   # Documentação e métricas
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Pré-requisitos
 - Python 3.9+
@@ -49,7 +47,7 @@ make test-all
 make dev
 ```
 
-## 🧪 Estratégia de Testes
+## Estratégia de Testes
 
 ### Pirâmide de Testes Implementada
 
@@ -71,7 +69,7 @@ make dev
 - ✅ **Contratos**: 100% compliance OpenAPI
 - ✅ **Code Quality**: SonarQube Grade A
 
-## 📊 Comandos Principais
+## Comandos Principais
 
 ```bash
 # Desenvolvimento
@@ -96,7 +94,7 @@ make deploy-staging        # Deploy para staging
 make deploy-prod           # Deploy para produção
 ```
 
-## 🔧 Configuração
+## Configuração
 
 ### Variáveis de Ambiente
 
@@ -121,14 +119,14 @@ LOCUST_SPAWN_RATE=10
 PERFORMANCE_THRESHOLD_P95=200
 ```
 
-## 📈 Métricas e Monitoramento
+## Métricas e Monitoramento
 
 - **Dashboard Grafana**: Métricas de performance em tempo real
 - **Relatórios Allure**: Resultados detalhados de testes
 - **SonarQube**: Qualidade de código e technical debt
 - **OWASP ZAP**: Relatórios de segurança automatizados
 
-## 🤝 Contribuição
+## Contribuição
 
 1. Fork o projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
@@ -143,17 +141,9 @@ PERFORMANCE_THRESHOLD_P95=200
 - **Testes**: AAA Pattern (Arrange, Act, Assert)
 - **Documentação**: Docstrings + Sphinx
 
-## 📚 Documentação
+## Documentação
 
 - [Plano de Testes](docs/test_plan.md)
 - [Estratégia de QA](docs/qa_strategy.md)
 - [Guia de Contribuição](docs/contributing.md)
 - [API Documentation](docs/api_docs.md)
-
-## 📄 Licença
-
-Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
----
-
-**Desenvolvido com ❤️ pela equipe de QA Engineering**
