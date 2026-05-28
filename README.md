@@ -46,12 +46,12 @@ make dev
 
 ### Quality Gates
 
-- ✅ Cobertura de código ≥ 85%
-- ✅ Testes funcionais: 100% sucesso
-- ✅ Performance: < 200ms (P95)
-- ✅ Segurança: zero vulnerabilidades críticas
-- ✅ Contratos: 100% compliance OpenAPI
-- ✅ Code Quality: SonarQube Grade A
+- Cobertura de código ≥ 85%
+- Testes funcionais: 100% sucesso
+- Performance: < 200ms (P95)
+- Segurança: zero vulnerabilidades críticas
+- Contratos: 100% compliance OpenAPI
+- Code Quality: SonarQube Grade A
 
 ### Comandos Principais
 
@@ -70,7 +70,7 @@ make dev
 
 ### Documentação
 
-- ✅ docs/test_plan.md – Plano de Testes
-- ✅ docs/qa_strategy.md – Estratégia de QA
-- ✅ docs/contributing.md – Guia de Contribuição
-- ✅ docs/api_docs.md – Documentação da API
+- docs/test_plan.md – Plano de Testes
+- docs/qa_strategy.md – Estratégia de QA
+- docs/contributing.md – Guia de Contribuição
+- docs/api_docs.md – Documentação da API
