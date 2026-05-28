@@ -6,24 +6,6 @@
 
 Framework de QA abrangente para APIs de saúde, seguindo padrões internacionais **ISTQB**, **ISO/IEC 29119** e **OWASP**. Implementa estratégia de **Shift-Left Testing** com automação completa em pipeline CI/CD.
 
-### Arquitetura de Testes
-
-```
-healthapi-qa-framework/
-├── api/                    # Sistema Sob Teste (SUT) - FastAPI
-├── tests/
-│   ├── functional/         # Testes de API (PyTest + Requests)
-│   ├── integration/        # Integração entre módulos
-│   ├── performance/        # Testes de carga (Locust)
-│   └── security/           # Testes OWASP ZAP automatizados
-├── contracts/              # OpenAPI 3.0 Specifications
-├── pipelines/              # CI/CD GitHub Actions
-├── scripts/                # Utilitários e automação
-└── docs/                   # Documentação e métricas
-```
-
-## Quick Start
-
 ### Pré-requisitos
 - Python 3.9+
 - Docker & Docker Compose
@@ -62,12 +44,12 @@ make dev
 
 ### Critérios de Qualidade (Quality Gates)
 
-- ✅ **Cobertura de código**: ≥ 85%
-- ✅ **Testes funcionais**: 100% pass rate
-- ✅ **Performance**: Response time < 200ms (P95)
-- ✅ **Segurança**: Zero vulnerabilidades críticas/altas
-- ✅ **Contratos**: 100% compliance OpenAPI
-- ✅ **Code Quality**: SonarQube Grade A
+- **Cobertura de código**: ≥ 85%
+- **Testes funcionais**: 100% pass rate
+- **Performance**: Response time < 200ms (P95)
+- **Segurança**: Zero vulnerabilidades críticas/altas
+- **Contratos**: 100% compliance OpenAPI
+- **Code Quality**: SonarQube Grade A
 
 ## Comandos Principais
 
