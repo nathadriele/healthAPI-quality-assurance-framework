@@ -1,22 +1,23 @@
 openapi: 3.0.3
+
 info:
   title: Health API QA Framework
   description: |
-    ## 🏥 Health API for QA Testing
-    
+    Health API for QA Testing
+
     API completa para demonstração de testes automatizados em sistemas de saúde.
-    
-    ### Funcionalidades:
-    - **Pacientes**: CRUD completo de pacientes
-    - **Consultas**: Agendamento e gerenciamento de consultas
-    - **Monitoramento**: Health checks e métricas
-    
-    ### Segurança:
+
+    Funcionalidades:
+    - Pacientes: CRUD completo de pacientes
+    - Consultas: Agendamento e gerenciamento de consultas
+    - Monitoramento: Health checks e métricas
+
+    Segurança:
     - Validação de entrada
     - Headers de segurança
     - Rate limiting
-    
-    ### Qualidade:
+
+    Qualidade:
     - Testes automatizados
     - Monitoramento contínuo
     - Documentação OpenAPI
@@ -45,14 +46,14 @@ paths:
       tags:
         - System
       responses:
-        '200':
+        "200":
           description: API information
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiInfo'
+                $ref: "#/components/schemas/ApiInfo"
               example:
-                message: "🏥 Health API QA Framework"
+                message: "Health API QA Framework"
                 version: "1.0.0"
                 status: "operational"
                 environment: "development"
@@ -67,18 +68,18 @@ paths:
       tags:
         - Monitoring
       responses:
-        '200':
+        "200":
           description: API is healthy
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthStatus'
-        '503':
+                $ref: "#/components/schemas/HealthStatus"
+        "503":
           description: API is unhealthy
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /ready:
     get:
@@ -88,12 +89,12 @@ paths:
       tags:
         - Monitoring
       responses:
-        '200':
+        "200":
           description: Service is ready
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReadinessStatus'
+                $ref: "#/components/schemas/ReadinessStatus"
 
   /live:
     get:
@@ -103,12 +104,12 @@ paths:
       tags:
         - Monitoring
       responses:
-        '200':
+        "200":
           description: Service is alive
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LivenessStatus'
+                $ref: "#/components/schemas/LivenessStatus"
 
   /metrics:
     get:
@@ -118,12 +119,12 @@ paths:
       tags:
         - Monitoring
       responses:
-        '200':
+        "200":
           description: System metrics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SystemMetrics'
+                $ref: "#/components/schemas/SystemMetrics"
 
   /api/v1/patients:
     get:
@@ -151,18 +152,18 @@ paths:
             minimum: 0
             default: 0
       responses:
-        '200':
+        "200":
           description: List of patients
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PatientsList'
-        '400':
+                $ref: "#/components/schemas/PatientsList"
+        "400":
           description: Invalid parameters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     post:
       summary: Create patient
@@ -175,31 +176,31 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatientCreate'
+              $ref: "#/components/schemas/PatientCreate"
             example:
               name: "João Silva"
               age: 35
               email: "joao.silva@email.com"
               phone: "+55 11 99999-9999"
       responses:
-        '200':
+        "200":
           description: Patient created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PatientCreateResponse'
-        '400':
+                $ref: "#/components/schemas/PatientCreateResponse"
+        "400":
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                $ref: "#/components/schemas/ValidationError"
 
   /api/v1/appointments:
     get:
@@ -218,24 +219,24 @@ paths:
             minimum: 1
         - name: date
           in: query
-          description: Filter by appointment date (YYYY-MM-DD)
+          description: Filter by appointment date
           required: false
           schema:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: List of appointments
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AppointmentsList'
-        '400':
+                $ref: "#/components/schemas/AppointmentsList"
+        "400":
           description: Invalid parameters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -254,13 +255,20 @@ components:
         version:
           type: string
           description: API version
-          pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+          pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
         status:
           type: string
-          enum: [operational, maintenance, deprecated]
+          enum:
+            - operational
+            - maintenance
+            - deprecated
         environment:
           type: string
-          enum: [development, testing, staging, production]
+          enum:
+            - development
+            - testing
+            - staging
+            - production
         docs_url:
           type: string
           nullable: true
@@ -281,7 +289,10 @@ components:
       properties:
         status:
           type: string
-          enum: [healthy, unhealthy, degraded]
+          enum:
+            - healthy
+            - unhealthy
+            - degraded
         service:
           type: string
           description: Service name
@@ -290,7 +301,11 @@ components:
           description: Service version
         environment:
           type: string
-          enum: [development, testing, staging, production]
+          enum:
+            - development
+            - testing
+            - staging
+            - production
         database:
           type: string
           description: Database connection status
@@ -310,7 +325,9 @@ components:
       properties:
         status:
           type: string
-          enum: [ready, not_ready]
+          enum:
+            - ready
+            - not_ready
         service:
           type: string
         timestamp:
@@ -325,7 +342,9 @@ components:
       properties:
         status:
           type: string
-          enum: [alive, dead]
+          enum:
+            - alive
+            - dead
         service:
           type: string
         timestamp:
@@ -418,7 +437,7 @@ components:
         patients:
           type: array
           items:
-            $ref: '#/components/schemas/Patient'
+            $ref: "#/components/schemas/Patient"
         total:
           type: integer
           minimum: 0
@@ -434,7 +453,7 @@ components:
           type: string
           description: Success message
         patient:
-          $ref: '#/components/schemas/Patient'
+          $ref: "#/components/schemas/Patient"
 
     Appointment:
       type: object
@@ -460,7 +479,7 @@ components:
           format: date
         time:
           type: string
-          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+          pattern: "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
         duration:
           type: integer
           minimum: 15
@@ -481,7 +500,7 @@ components:
         appointments:
           type: array
           items:
-            $ref: '#/components/schemas/Appointment'
+            $ref: "#/components/schemas/Appointment"
         total:
           type: integer
           minimum: 0
