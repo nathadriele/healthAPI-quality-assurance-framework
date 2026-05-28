@@ -1,76 +1,149 @@
-## Health API QA Framework
+# Health API QA Framework
 
-<img width="3037" height="997" alt="image" src="https://github.com/user-attachments/assets/07b5bd75-b712-47af-b604-c7008244c45f" />
+<img width="1890" height="904" alt="Captura de tela 2025-07-09 190022" src="https://github.com/user-attachments/assets/df4b2c5b-1d8d-4595-8e81-059a01c3ac83" />
 
-Framework de QA abrangente para APIs de saúde, seguindo os padrões ISTQB, ISO/IEC 29119 e OWASP. Estruturado para suportar automação completa, testes contínuos e qualidade em todas as etapas do ciclo de vida da API.
+##  Visão Geral
+
+Framework de QA abrangente para APIs de saúde, seguindo padrões internacionais **ISTQB**, **ISO/IEC 29119** e **OWASP**. Implementa estratégia de **Shift-Left Testing** com automação completa em pipeline CI/CD.
 
 ### Arquitetura de Testes
 
 ```
 healthapi-qa-framework/
-├── api/                    # Sistema Sob Teste (FastAPI)
+├── api/                    # Sistema Sob Teste (SUT) - FastAPI
 ├── tests/
-│   ├── functional/         # Testes funcionais (PyTest + Requests)
-│   ├── integration/        # Testes de integração
-│   ├── performance/        # Testes de performance (Locust)
-│   └── security/           # Testes de segurança (ZAP)
-├── contracts/              # Especificações OpenAPI 3.0
-├── pipelines/              # Workflows GitHub Actions
-├── scripts/                # Scripts utilitários
+│   ├── functional/         # Testes de API (PyTest + Requests)
+│   ├── integration/        # Integração entre módulos
+│   ├── performance/        # Testes de carga (Locust)
+│   └── security/           # Testes OWASP ZAP automatizados
+├── contracts/              # OpenAPI 3.0 Specifications
+├── pipelines/              # CI/CD GitHub Actions
+├── scripts/                # Utilitários e automação
 └── docs/                   # Documentação e métricas
 ```
 
-<img width="541" height="362" alt="image" src="https://github.com/user-attachments/assets/8369b0ec-b8d7-4dc0-b8b0-3e9d6a46780f" />
+## Quick Start
 
-### Quick Start
-
-#### Pré-requisitos
+### Pré-requisitos
 - Python 3.9+
-- Docker e Docker Compose
-- Node.js 16+
-- Make 
+- Docker & Docker Compose
+- Node.js 16+ (para ferramentas auxiliares)
+- Make (opcional, mas recomendado)
 
-#### Instalação
+### Instalação
 
-```
-git clone https://github.com/nathadriele/healthapi-qa-framework.git
+```bash
+# Clone o repositório
+git clone https://github.com/your-org/healthapi-qa-framework.git
 cd healthapi-qa-framework
+
+# Setup completo do ambiente
 make setup
+
+# Executar todos os testes
 make test-all
+
+# Executar API em modo desenvolvimento
 make dev
 ```
 
-### Estratégia de Testes
+## Estratégia de Testes
 
-<img width="751" height="482" alt="image" src="https://github.com/user-attachments/assets/526ce742-692e-4ba6-979e-771c39aa4c9c" />
+### Pirâmide de Testes Implementada
 
-### Quality Gates
+| Nível | Tipo | Ferramenta | Cobertura |
+|-------|------|------------|-----------|
+| **Unit** | Testes unitários da API | PyTest | 90%+ |
+| **Integration** | Integração entre módulos | PyTest + TestContainers | 80%+ |
+| **Contract** | Validação OpenAPI | Pact/Dredd | 100% |
+| **Functional** | Testes de API E2E | PyTest + Requests | 95%+ |
+| **Performance** | Carga e stress | Locust | SLA compliance |
+| **Security** | Vulnerabilidades OWASP | ZAP + Bandit | Zero critical |
 
-- Cobertura de código ≥ 85%
-- Testes funcionais: 100% sucesso
-- Performance: < 200ms (P95)
-- Segurança: zero vulnerabilidades críticas
-- Contratos: 100% compliance OpenAPI
-- Code Quality: SonarQube Grade A
+### Critérios de Qualidade (Quality Gates)
 
-### Comandos Principais
+- ✅ **Cobertura de código**: ≥ 85%
+- ✅ **Testes funcionais**: 100% pass rate
+- ✅ **Performance**: Response time < 200ms (P95)
+- ✅ **Segurança**: Zero vulnerabilidades críticas/altas
+- ✅ **Contratos**: 100% compliance OpenAPI
+- ✅ **Code Quality**: SonarQube Grade A
 
-<img width="246" height="550" alt="image" src="https://github.com/user-attachments/assets/07e07a9e-e703-4876-a0b6-1fd5843e4cd6" />
+## Comandos Principais
+
+```bash
+# Desenvolvimento
+make dev                    # Inicia API em modo desenvolvimento
+make test-unit             # Executa testes unitários
+make test-functional       # Executa testes funcionais
+make test-integration      # Executa testes de integração
+
+# Performance & Segurança
+make test-performance      # Executa testes de carga
+make test-security         # Executa scan de segurança
+make test-contracts        # Valida contratos OpenAPI
+
+# Qualidade & Relatórios
+make coverage              # Gera relatório de cobertura
+make lint                  # Análise estática de código
+make sonar                 # Análise SonarQube local
+
+# CI/CD
+make build                 # Build da aplicação
+make deploy-staging        # Deploy para staging
+make deploy-prod           # Deploy para produção
+```
+
+## Configuração
 
 ### Variáveis de Ambiente
 
-<img width="548" height="500" alt="image" src="https://github.com/user-attachments/assets/93d6a42d-18c0-4907-90f1-d271d1ef856c" />
+```bash
+# API Configuration
+API_HOST=localhost
+API_PORT=8000
+DATABASE_URL=postgresql://user:pass@localhost:5432/healthapi
 
-### Métricas e Monitoramento
+# Test Configuration
+TEST_ENVIRONMENT=local
+PARALLEL_WORKERS=4
+TEST_TIMEOUT=30
 
-- Grafana: Métricas em tempo real
-- Allure Reports: Detalhamento dos testes
-- SonarQube: Qualidade de código
-- OWASP ZAP: Relatórios de vulnerabilidades
+# Security
+OWASP_ZAP_URL=http://localhost:8080
+SECURITY_SCAN_LEVEL=medium
 
-### Documentação
+# Performance
+LOCUST_USERS=100
+LOCUST_SPAWN_RATE=10
+PERFORMANCE_THRESHOLD_P95=200
+```
 
-- docs/test_plan.md – Plano de Testes
-- docs/qa_strategy.md – Estratégia de QA
-- docs/contributing.md – Guia de Contribuição
-- docs/api_docs.md – Documentação da API
+## Métricas e Monitoramento
+
+- **Dashboard Grafana**: Métricas de performance em tempo real
+- **Relatórios Allure**: Resultados detalhados de testes
+- **SonarQube**: Qualidade de código e technical debt
+- **OWASP ZAP**: Relatórios de segurança automatizados
+
+## Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+### Padrões de Código
+
+- **Python**: PEP 8 + Black formatter
+- **Commits**: Conventional Commits
+- **Testes**: AAA Pattern (Arrange, Act, Assert)
+- **Documentação**: Docstrings + Sphinx
+
+## Documentação
+
+- [Plano de Testes](docs/test_plan.md)
+- [Estratégia de QA](docs/qa_strategy.md)
+- [Guia de Contribuição](docs/contributing.md)
+- [API Documentation](docs/api_docs.md)
