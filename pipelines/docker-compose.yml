@@ -1,10 +1,6 @@
-version: '3.8'
-
-# Health API QA Framework - Docker Compose
-# Ambiente completo para desenvolvimento e testes
+version: "3.8"
 
 services:
-  # API Principal
   healthapi:
     build:
       context: ..
@@ -37,7 +33,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # Banco de Dados PostgreSQL
   postgres:
     image: postgres:15-alpine
     container_name: healthapi-postgres
@@ -60,7 +55,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis para Cache
   redis:
     image: redis:7-alpine
     container_name: healthapi-redis
@@ -77,7 +71,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # OWASP ZAP para Testes de Segurança
   owasp-zap:
     image: owasp/zap2docker-stable
     container_name: healthapi-zap
@@ -90,7 +83,6 @@ services:
       - healthapi-network
     restart: unless-stopped
 
-  # SonarQube para Análise de Código
   sonarqube:
     image: sonarqube:community
     container_name: healthapi-sonar
@@ -111,7 +103,6 @@ services:
       - healthapi-network
     restart: unless-stopped
 
-  # Grafana para Monitoramento
   grafana:
     image: grafana/grafana:latest
     container_name: healthapi-grafana
@@ -128,7 +119,6 @@ services:
       - healthapi-network
     restart: unless-stopped
 
-  # Prometheus para Métricas
   prometheus:
     image: prom/prometheus:latest
     container_name: healthapi-prometheus
@@ -138,30 +128,28 @@ services:
       - ../scripts/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
     networks:
       - healthapi-network
     restart: unless-stopped
 
-  # Jaeger para Tracing Distribuído
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: healthapi-jaeger
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "14268:14268"  # Jaeger collector HTTP
-      - "14250:14250"  # Jaeger collector gRPC
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
     networks:
       - healthapi-network
     restart: unless-stopped
 
-  # Nginx como Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: healthapi-nginx
@@ -177,7 +165,6 @@ services:
       - healthapi-network
     restart: unless-stopped
 
-# Volumes persistentes
 volumes:
   postgres_data:
     driver: local
@@ -194,7 +181,6 @@ volumes:
   prometheus_data:
     driver: local
 
-# Rede personalizada
 networks:
   healthapi-network:
     driver: bridge
